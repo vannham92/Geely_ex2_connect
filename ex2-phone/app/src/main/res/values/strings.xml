@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Geely EX2</string>
+
+    <!-- Notification thường trực của CarConnectionService -->
+    <string name="car_link_channel_name">Kết nối xe</string>
+    <string name="car_link_channel_desc">Trạng thái khi ứng dụng giữ kết nối với xe dưới nền</string>
+    <string name="car_link_connecting">Đang tìm xe…</string>
+    <string name="car_link_connected">Đã kết nối · %1$s</string>
+    <string name="car_link_bluetooth">Bluetooth</string>
+    <string name="car_link_wifi">WiFi</string>
+    <string name="car_link_battery">Pin %1$d%%</string>
+    <string name="car_link_stop">Dừng</string>
+</resources>

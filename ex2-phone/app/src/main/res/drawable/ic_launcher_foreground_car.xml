@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lớp foreground của adaptive icon: layer 108x108dp, vùng an toàn là hình tròn Ø72dp.
+     Xe tỉ lệ ~1.96:1 nên 64x33dp là hộp lớn nhất còn nằm trọn trong vòng tròn đó. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="64dp"
+        android:height="33dp"
+        android:gravity="center"
+        android:drawable="@drawable/ic_launcher_car" />
+</layer-list>

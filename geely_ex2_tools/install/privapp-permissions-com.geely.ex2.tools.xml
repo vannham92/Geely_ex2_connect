@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Push to /system/etc/permissions/ when installing as priv-app / platform app on Flyme HU.
+  AVAS mute needs CAR_CONTROL_AUDIO_VOLUME (same as CentralEXAuto).
+-->
+<permissions>
+    <privapp-permissions package="com.geely.ex2.tools">
+        <permission name="android.car.permission.CAR_VENDOR_EXTENSION" />
+        <permission name="android.car.permission.CAR_CONTROL_AUDIO_VOLUME" />
+        <permission name="android.car.permission.CAR_CONTROL_AUDIO_SETTINGS" />
+        <permission name="android.permission.WRITE_SECURE_SETTINGS" />
+    </privapp-permissions>
+</permissions>

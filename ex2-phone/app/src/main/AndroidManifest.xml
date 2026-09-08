@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- Bluetooth SPP (RFCOMM) — kênh đồng bộ song song với TCP 47800.
+         BLUETOOTH/BLUETOOTH_ADMIN chỉ dùng tới API 30; API 31+ thay bằng BLUETOOTH_CONNECT (runtime).
+         Chỉ connect tới thiết bị đã pair nên không cần BLUETOOTH_SCAN / location. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- Giữ kết nối tới xe khi app đã đóng (CarConnectionService).
+         API 34+ bắt buộc khai foregroundServiceType + quyền tương ứng; type connectedDevice
+         hợp lệ nhờ đã có BLUETOOTH_CONNECT. POST_NOTIFICATIONS (API 33+) chỉ để notification
+         thường trực của service hiện ra — thiếu nó service vẫn chạy. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Mục Giới thiệu mở app mail qua mailto: — API 30+ cần khai báo mới thấy được app email. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Ex2phone">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Ex2phone"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.CarConnectionService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <!-- exported=true vì đây là broadcast của hệ thống (protected broadcast, app khác
+             không giả được). Khai trong manifest nên vẫn nhận khi app đóng và sau khi khởi
+             động lại máy — không cần receiver BOOT_COMPLETED. -->
+        <receiver
+            android:name=".service.CarBluetoothReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon: xe EX2 trắng (ex2_white.png cắt sát viền) trên nền gradient tối. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/launcher_bg" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground_car" />
+</adaptive-icon>

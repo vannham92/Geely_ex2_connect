@@ -1,0 +1,61 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Generated files
+bin/
+gen/
+out/
+
+# Gradle
+.gradle/
+build/
+
+# Android Studio
+*.iml
+.idea/
+!.idea/codeStyles/
+!.idea/runConfigurations.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# Platform / signing keys (obtain locally — see docs/system-install.md)
+keys/
+
+# Log files
+*.log
+
+# OS
+Thumbs.db
+
+# Kotlin compiler cache
+.kotlin/
+
+# Temporary APK analysis artifacts
+.tmp/
+
+# Platform-signed install outputs
+install/out/
+
+# Local conversion tooling (not shipped)
+tools/ffmpeg/

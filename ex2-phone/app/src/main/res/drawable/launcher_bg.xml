@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nền launcher icon: gradient tối cùng tông với theme app, để xe trắng nổi lên. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#1C2431"
+        android:endColor="#090B10"
+        android:type="linear" />
+</shape>
