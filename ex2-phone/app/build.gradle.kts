@@ -6,7 +6,7 @@ plugins {
 
 // Tên file APK/AAB. `defaultConfig.setProperty("archivesBaseName", …)` không còn từ AGP 9.
 base {
-    archivesName.set("geely-ex2")
+    archivesName.set("ex2_phone")
 }
 
 android {
