@@ -4,10 +4,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
+
+import java.util.Properties
+
+// Set output archive name for this module
 base {
     archivesName.set("ex2_car")
 }
-import java.util.Properties
 
 android {
     namespace = "com.geely.ex2.tools"
