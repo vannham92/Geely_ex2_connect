@@ -2,10 +2,10 @@ package com.example.ex2_phone.update
 
 import android.app.Service
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageInstaller
 import android.os.IBinder
 import android.util.Log
-import com.example.ex2_phone.BuildConfig
 import java.io.File
 import java.io.FileInputStream
 import java.lang.Exception
@@ -47,6 +47,36 @@ class UpdateService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private fun getLocalVersionCode(): Int {
+        return try {
+            val pkgInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageManager.getPackageInfo(packageName, 0)
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0)
+            }
+            // longVersionCode requires API 28; safe cast
+            try {
+                val field = pkgInfo::class.java.getDeclaredField("longVersionCode")
+                field.isAccessible = true
+                val lv = field.getLong(pkgInfo)
+                lv.toInt()
+            } catch (e: Exception) {
+                // fallback to versionCode
+                @Suppress("DEPRECATION")
+                try {
+                    val vcField = pkgInfo::class.java.getDeclaredField("versionCode")
+                    vcField.isAccessible = true
+                    vcField.getInt(pkgInfo)
+                } catch (e2: Exception) {
+                    0
+                }
+            }
+        } catch (e: Exception) {
+            0
+        }
+    }
+
     private fun checkOnce() {
         Log.i(TAG, "Checking update endpoint: $UPDATE_JSON_URL")
         val json = fetchUrl(UPDATE_JSON_URL) ?: run {
@@ -59,8 +89,9 @@ class UpdateService : Service() {
         val remoteVersion = obj.optInt("versionCode", -1)
         val apkUrl = obj.optString("apkUrl", "")
         val sha256 = obj.optString("sha256", "")
-        if (remoteVersion <= BuildConfig.VERSION_CODE) {
-            Log.i(TAG, "No update: remote=$remoteVersion local=${BuildConfig.VERSION_CODE}")
+        val localVersion = getLocalVersionCode()
+        if (remoteVersion <= localVersion) {
+            Log.i(TAG, "No update: remote=$remoteVersion local=$localVersion")
             return
         }
         if (apkUrl.isBlank()) {
@@ -168,7 +199,7 @@ class UpdateService : Service() {
                     out.flush()
                 }
             }
-            val intentSender = null
+            val intentSender: IntentSender? = null
             session.commit(intentSender)
             session.close()
             return true
