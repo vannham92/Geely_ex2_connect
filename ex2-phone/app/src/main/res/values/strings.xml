@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Geely EX2</string>
+    <string name="app_name">ex2_phone</string>
 
     <!-- Notification thường trực của CarConnectionService -->
     <string name="car_link_channel_name">Kết nối xe</string>
