@@ -1,3 +1,6 @@
+# Build & Publish Release workflow
+# Trigger: push a tag matching v*
+# Requires secret: RELEASE_PAT (fine-grained PAT with repo Contents: read/write and Releases: read/write)
 name: Build & Publish Release
 
 on:
@@ -45,16 +48,18 @@ jobs:
         working-directory: ./ex2-phone
         run: |
           chmod +x ./gradlew || true
-          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          echo "JAVA_HOME=${JAVA_HOME}"
+          ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleRelease --no-daemon --stacktrace
 
       - name: Build geely_ex2_tools (system/user release)
         working-directory: ./geely_ex2_tools
         run: |
           chmod +x ./gradlew || true
+          echo "JAVA_HOME=${JAVA_HOME}"
           set -e
-          # try system release first; if it fails, try user release
-          ./gradlew :app:assembleSystemRelease --no-daemon --stacktrace || true
-          ./gradlew :app:assembleUserRelease --no-daemon --stacktrace || true
+          # Try system release first (if configured), otherwise try user release
+          ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleSystemRelease --no-daemon --stacktrace || true
+          ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleUserRelease --no-daemon --stacktrace || true
 
       - name: Determine APK paths
         id: paths
@@ -63,7 +68,6 @@ jobs:
           if [ -f "ex2-phone/app/build/outputs/apk/release/app-release.apk" ]; then
             echo "EX2_PHONE_APK=ex2-phone/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
           else
-            # try other locations
             FPATH=$(find ex2-phone/app/build/outputs -type f -name "*.apk" | head -n1 || true)
             echo "EX2_PHONE_APK=${FPATH}" >> $GITHUB_OUTPUT
           fi
