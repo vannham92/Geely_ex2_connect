@@ -4,7 +4,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
-base { archivesName.set("ex2_car") }
+base {
+    archivesName.set("ex2_car")
+}
 import java.util.Properties
 
 android {
