@@ -11,7 +11,7 @@ env:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - name: Checkout repository
@@ -31,31 +31,57 @@ jobs:
           api-level: 35
           build-tools: '35.0.0'
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Make gradle wrappers executable
+        run: |
+          chmod +x ./gradlew || true
+          chmod +x ./ex2-phone/gradlew || true
+          chmod +x ./geely_ex2_tools/gradlew || true
+
+      - name: Accept Android SDK licenses
+        run: |
+          yes | sdkmanager --licenses || true
 
       - name: Build ex2-phone (release)
         working-directory: ./ex2-phone
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
-
-      - name: Build geely_ex2_tools (system release)
-        working-directory: ./geely_ex2_tools
-        # try system release; if not present, try user release
         run: |
+          chmod +x ./gradlew || true
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Build geely_ex2_tools (system/user release)
+        working-directory: ./geely_ex2_tools
+        run: |
+          chmod +x ./gradlew || true
+          set -e
+          # try system release first; if it fails, try user release
           ./gradlew :app:assembleSystemRelease --no-daemon --stacktrace || true
           ./gradlew :app:assembleUserRelease --no-daemon --stacktrace || true
 
       - name: Determine APK paths
         id: paths
         run: |
-          echo "EX2_PHONE_APK=ex2-phone/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
-          # try system apk path
-          if ls geely_ex2_tools/app/build/outputs/apk/system/release/*.apk 1> /dev/null 2>&1; then
-            echo "GEELY_SYSTEM_APK=geely_ex2_tools/app/build/outputs/apk/system/release/$(ls geely_ex2_tools/app/build/outputs/apk/system/release | head -n1)" >> $GITHUB_OUTPUT
+          # ex2-phone release apk (expected)
+          if [ -f "ex2-phone/app/build/outputs/apk/release/app-release.apk" ]; then
+            echo "EX2_PHONE_APK=ex2-phone/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
+          else
+            # try other locations
+            FPATH=$(find ex2-phone/app/build/outputs -type f -name "*.apk" | head -n1 || true)
+            echo "EX2_PHONE_APK=${FPATH}" >> $GITHUB_OUTPUT
           fi
-          # try user apk path
+
+          # geely system apk
+          if ls geely_ex2_tools/app/build/outputs/apk/system/release/*.apk 1> /dev/null 2>&1; then
+            SYSAPK=$(ls geely_ex2_tools/app/build/outputs/apk/system/release/*.apk | head -n1)
+            echo "GEELY_SYSTEM_APK=${SYSAPK}" >> $GITHUB_OUTPUT
+          else
+            echo "GEELY_SYSTEM_APK=" >> $GITHUB_OUTPUT
+          fi
+
+          # geely user apk
           if ls geely_ex2_tools/app/build/outputs/apk/user/release/*.apk 1> /dev/null 2>&1; then
-            echo "GEELY_USER_APK=geely_ex2_tools/app/build/outputs/apk/user/release/$(ls geely_ex2_tools/app/build/outputs/apk/user/release | head -n1)" >> $GITHUB_OUTPUT
+            USERAPK=$(ls geely_ex2_tools/app/build/outputs/apk/user/release/*.apk | head -n1)
+            echo "GEELY_USER_APK=${USERAPK}" >> $GITHUB_OUTPUT
+          else
+            echo "GEELY_USER_APK=" >> $GITHUB_OUTPUT
           fi
 
       - name: Create GitHub Release
@@ -63,14 +89,16 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: Automated release for ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
 
-      - name: Upload ex2-phone APK to Release
-        if: always()
+      - name: Upload ex2-phone APK to Release (if present)
+        if: steps.paths.outputs.EX2_PHONE_APK != ''
         uses: softprops/action-gh-release@v1
         with:
-          files: ex2-phone/app/build/outputs/apk/release/app-release.apk
+          files: ${{ steps.paths.outputs.EX2_PHONE_APK }}
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
 
