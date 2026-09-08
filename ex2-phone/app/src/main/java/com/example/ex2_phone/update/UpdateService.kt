@@ -1,5 +1,6 @@
 package com.example.ex2_phone.update
 
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.IntentSender
@@ -49,20 +50,13 @@ class UpdateService : Service() {
 
     private fun getLocalVersionCode(): Int {
         return try {
-            val pkgInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                packageManager.getPackageInfo(packageName, 0)
-            } else {
-                @Suppress("DEPRECATION")
-                packageManager.getPackageInfo(packageName, 0)
-            }
-            // longVersionCode requires API 28; safe cast
+            val pkgInfo = packageManager.getPackageInfo(packageName, 0)
             try {
-                val field = pkgInfo::class.java.getDeclaredField("longVersionCode")
-                field.isAccessible = true
-                val lv = field.getLong(pkgInfo)
+                val longField = pkgInfo::class.java.getDeclaredField("longVersionCode")
+                longField.isAccessible = true
+                val lv = longField.getLong(pkgInfo)
                 lv.toInt()
             } catch (e: Exception) {
-                // fallback to versionCode
                 @Suppress("DEPRECATION")
                 try {
                     val vcField = pkgInfo::class.java.getDeclaredField("versionCode")
@@ -199,7 +193,10 @@ class UpdateService : Service() {
                     out.flush()
                 }
             }
-            val intentSender: IntentSender? = null
+            // Create a PendingIntent so we can pass a non-null IntentSender to commit()
+            val piIntent = Intent("com.example.ex2_phone.UPDATE_INSTALL")
+            val pending = PendingIntent.getBroadcast(applicationContext, 0, piIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT)
+            val intentSender: IntentSender = pending.intentSender
             session.commit(intentSender)
             session.close()
             return true
