@@ -1,12 +1,11 @@
-package com.geely.ex2.tools.update
+package com.example.ex2_phone.update
 
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageInstaller
-import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import com.geely.ex2.tools.BuildConfig
+import com.example.ex2_phone.BuildConfig
 import java.io.File
 import java.io.FileInputStream
 import java.lang.Exception
@@ -18,29 +17,19 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import org.json.JSONObject
 
-/**
- * Background service that periodically checks a remote JSON endpoint for a newer APK and
- * installs it. When running as a system/priv-app (flavor `system`) this will attempt a
- * silent install using PackageInstaller APIs or pm command. On normal (user) installs it
- * falls back to interactive install via FileProvider (not implemented here).
- */
 class UpdateService : Service() {
-    private val TAG = "UpdateService"
+    private val TAG = "PhoneUpdateService"
     private val scheduler = Executors.newSingleThreadScheduledExecutor()
     private var scheduledFuture: ScheduledFuture<*>? = null
 
     companion object {
-        // Use GitHub raw content as update server for this repo.
-        // Update URL pattern: https://raw.githubusercontent.com/{owner}/{repo}/{branch}/updates/{module}/version.json
-        const val UPDATE_JSON_URL = "https://raw.githubusercontent.com/vannham92/Geely_ex2_connect/main/updates/geely_ex2_tools/version.json"
-        // check interval: 3 hours
+        const val UPDATE_JSON_URL = "https://raw.githubusercontent.com/vannham92/Geely_ex2_connect/main/updates/ex2_phone/version.json"
         const val CHECK_INTERVAL_MIN = 60 * 3
     }
 
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "onCreate: starting scheduled updater")
-        // start immediately, then periodically
         scheduledFuture = scheduler.scheduleWithFixedDelay({
             try {
                 checkOnce()
@@ -93,15 +82,8 @@ class UpdateService : Service() {
             }
         }
 
-        // If running as system flavor, attempt silent install
-        if (BuildConfig.FLAVOR == "system") {
-            Log.i(TAG, "Attempting silent install (system)")
-            val installed = trySilentInstall(apkFile)
-            Log.i(TAG, "Silent install result: $installed")
-        } else {
-            Log.i(TAG, "Non-system build: interactive install required (not implemented)")
-            // We intentionally avoid prompting user here; interactive flow could be added.
-        }
+        // For phone builds we will not perform silent install; interactive install required.
+        Log.i(TAG, "Downloaded update for phone: ${apkFile.absolutePath}")
     }
 
     private fun fetchUrl(urlStr: String): String? {
@@ -174,12 +156,10 @@ class UpdateService : Service() {
     }
 
     private fun trySilentInstall(apkFile: File): Boolean {
-        // First try PackageInstaller session API (requires privileged INSTALL_PACKAGES)
         try {
             val pm = packageManager
             val installer: PackageInstaller = pm.packageInstaller
             val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
-            // optional: set app package name / install flags
             val sessionId = installer.createSession(params)
             val session = installer.openSession(sessionId)
             session.openWrite("package", 0, -1).use { out ->
@@ -195,8 +175,6 @@ class UpdateService : Service() {
         } catch (e: Exception) {
             Log.w(TAG, "PackageInstaller session failed", e)
         }
-
-        // Fallback: try invoking pm install -r
         try {
             val cmd = arrayOf("pm", "install", "-r", apkFile.absolutePath)
             val proc = Runtime.getRuntime().exec(cmd)
