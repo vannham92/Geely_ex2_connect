@@ -16,108 +16,74 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+steps:
+  - name: Checkout repo
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 0
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  - name: Set up JDK 17
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v2
-        with:
-          api-level: 35
-          build-tools: '35.0.0'
+  - name: Set up Android SDK
+    uses: android-actions/setup-android@v2
+    with:
+      api-level: 35
+      build-tools: '35.0.0'
 
-      - name: Make gradle wrappers executable
-        run: |
-          chmod +x ./gradlew || true
-          chmod +x ./ex2-phone/gradlew || true
-          chmod +x ./geely_ex2_tools/gradlew || true
+  - name: Make Gradle wrappers executable
+    run: |
+      chmod +x ./gradlew || true
+      chmod +x ./ex2-phone/gradlew || true
+      chmod +x ./geely_ex2_tools/gradlew || true
 
-      - name: Accept Android SDK licenses
-        run: |
-          yes | sdkmanager --licenses || true
+  - name: Accept SDK licenses
+    run: |
+      yes | sdkmanager --licenses || true
 
-      - name: Build ex2-phone (release)
-        working-directory: ./ex2-phone
-        run: |
-          chmod +x ./gradlew || true
-          echo "JAVA_HOME=${JAVA_HOME}"
-          ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleRelease --no-daemon --stacktrace
+  - name: Build ex2_phone (attempt release -> fallback debug)
+    working-directory: ./ex2-phone
+    run: |
+      chmod +x ./gradlew || true
+      ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleRelease --no-daemon --stacktrace || ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Build geely_ex2_tools (system/user release)
-        working-directory: ./geely_ex2_tools
-        run: |
-          chmod +x ./gradlew || true
-          echo "JAVA_HOME=${JAVA_HOME}"
-          set -e
-          # Try system release first (if configured), otherwise try user release
-          ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleSystemRelease --no-daemon --stacktrace || true
-          ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleUserRelease --no-daemon --stacktrace || true
+  - name: Build ex2_car (attempt system release -> fallback to debug)
+    working-directory: ./geely_ex2_tools
+    run: |
+      chmod +x ./gradlew || true
+      set -e
+      ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleSystemRelease --no-daemon --stacktrace || true
+      ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleSystemDebug --no-daemon --stacktrace || true
+      ./gradlew -Dorg.gradle.java.home="${JAVA_HOME}" :app:assembleUserDebug --no-daemon --stacktrace || true
 
-      - name: Determine APK paths
-        id: paths
-        run: |
-          # ex2-phone release apk (expected)
-          if [ -f "ex2-phone/app/build/outputs/apk/release/app-release.apk" ]; then
-            echo "EX2_PHONE_APK=ex2-phone/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
-          else
-            FPATH=$(find ex2-phone/app/build/outputs -type f -name "*.apk" | head -n1 || true)
-            echo "EX2_PHONE_APK=${FPATH}" >> $GITHUB_OUTPUT
-          fi
+  - name: Find APK outputs
+    id: find_apks
+    run: |
+      EX2_PHONE_APK=$(find ex2-phone/app/build/outputs -type f -name "*.apk" | sort -r | head -n1 || true)
+      GEELY_APK=$(find geely_ex2_tools/app/build/outputs -type f -name "*.apk" | sort -r | head -n1 || true)
+      echo "EX2_PHONE_APK=${EX2_PHONE_APK}" >> $GITHUB_OUTPUT
+      echo "GEELY_APK=${GEELY_APK}" >> $GITHUB_OUTPUT
+      echo "Found EX2_PHONE_APK=${EX2_PHONE_APK}"
+      echo "Found GEELY_APK=${GEELY_APK}"
 
-          # geely system apk
-          if ls geely_ex2_tools/app/build/outputs/apk/system/release/*.apk 1> /dev/null 2>&1; then
-            SYSAPK=$(ls geely_ex2_tools/app/build/outputs/apk/system/release/*.apk | head -n1)
-            echo "GEELY_SYSTEM_APK=${SYSAPK}" >> $GITHUB_OUTPUT
-          else
-            echo "GEELY_SYSTEM_APK=" >> $GITHUB_OUTPUT
-          fi
+  - name: Create GitHub Release
+    id: create_release
+    uses: softprops/action-gh-release@v1
+    with:
+      tag_name: ${{ github.ref_name }}
+      name: Release ${{ github.ref_name }}
+      body: Automated release for ${{ github.ref_name }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
 
-          # geely user apk
-          if ls geely_ex2_tools/app/build/outputs/apk/user/release/*.apk 1> /dev/null 2>&1; then
-            USERAPK=$(ls geely_ex2_tools/app/build/outputs/apk/user/release/*.apk | head -n1)
-            echo "GEELY_USER_APK=${USERAPK}" >> $GITHUB_OUTPUT
-          else
-            echo "GEELY_USER_APK=" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: Automated release for ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
-
-      - name: Upload ex2-phone APK to Release (if present)
-        if: steps.paths.outputs.EX2_PHONE_APK != ''
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ steps.paths.outputs.EX2_PHONE_APK }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
-
-      - name: Upload geely_ex2_tools system APK to Release (if exists)
-        if: steps.paths.outputs.GEELY_SYSTEM_APK != ''
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ steps.paths.outputs.GEELY_SYSTEM_APK }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
-
-      - name: Upload geely_ex2_tools user APK to Release (if exists)
-        if: steps.paths.outputs.GEELY_USER_APK != ''
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ steps.paths.outputs.GEELY_USER_APK }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+  - name: Upload APKs to Release (if present)
+    uses: softprops/action-gh-release@v1
+    with:
+      files: |
+        ${{ steps.find_apks.outputs.EX2_PHONE_APK }}
+        ${{ steps.find_apks.outputs.GEELY_APK }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
